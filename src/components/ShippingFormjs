@@ -1,0 +1,129 @@
+import React, { useState } from 'react';
+import { Search } from 'lucide-react';
+import axios from 'axios';
+
+const ShippingForm = () => {
+  const [sender, setSender] = useState('');
+  const [receiver, setReceiver] = useState('');
+  const [item, setItem] = useState('');
+  const [dimensions, setDimensions] = useState('');
+  const [weight, setWeight] = useState('');
+  const [deliveryCost, setDeliveryCost] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Укажите ваши ключи DPD
+    const clientNumber = 'ВАШ_НОМЕР_КЛИЕНТА';
+    const clientKey = 'ВАШ_КЛЮЧ_КЛИЕНТА';
+
+    // Параметры для запроса
+    const requestData = {
+      request: {
+        auth: {
+          clientNumber: clientNumber,
+          clientKey: clientKey
+        },
+        pickup: { cityName: sender },
+        delivery: { cityName: receiver },
+        weight: parseFloat(weight) || 1,
+        volume: 0.1,
+        declaredValue: 1000 
+      }
+    };
+
+    try {
+      const response = await axios.post('https://ws.dpd.ru/services/calculator2?wsdl', requestData, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const result = response.data;
+      if (result && result.serviceCost) {
+        setDeliveryCost(result.serviceCost);
+        console.log('Стоимость доставки:', result);
+      } else {
+        console.error('Ошибка в ответе от DPD API:', result);
+      }
+    } catch (error) {
+      console.error('Ошибка при запросе к DPD API:', error);
+    }
+  };
+
+  return (
+    <div className="bg-[#E9F5FF] p-6 rounded-2xl shadow-lg">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {/* Первая строка */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Город отправителя"
+              value={sender}
+              onChange={(e) => setSender(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-blue-400"
+            />
+          </div>
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Город получателя"
+              value={receiver}
+              onChange={(e) => setReceiver(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-blue-400"
+            />
+          </div>
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Что отправляем"
+              value={item}
+              onChange={(e) => setItem(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-blue-400"
+            />
+          </div>
+        </div>
+
+        {/* Вторая строка */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Габариты (ДxШxВ)"
+              value={dimensions}
+              onChange={(e) => setDimensions(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-blue-400"
+            />
+          </div>
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Вес (кг)"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-blue-400"
+            />
+          </div>
+          <div className="flex-1 md:flex-initial">
+            <button
+              type="submit"
+              className="w-full md:w-auto px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
+            >
+              <Search size={20} />
+              Найти
+            </button>
+          </div>
+        </div>
+
+        {/* Отображение результата стоимости доставки */}
+        {deliveryCost !== null && (
+          <div className="mt-4 p-4 bg-blue-100 rounded-lg">
+            <p className="text-lg font-semibold">
+              Примерная стоимость доставки: {deliveryCost} руб.
+            </p>
+          </div>
+        )}
+      </form>
+    </div>
+  );
+};
+
+export default ShippingForm;
